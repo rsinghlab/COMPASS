@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environments and caches
+.venv/
+.uv-cache/
+uv-cache/
+
+# COMPASS runtime artifacts
+weights/
+models/
+outputs/
+debug/
+mask_overlays/
+profile_analysis/
+head_pred/
+pixels/
+*.pt
+*.pth
+
+# Local-only cluster helper
+scripts/run_gpu.sh
+
+# System/editor
+.DS_Store
