@@ -27,3 +27,6 @@ scripts/run_gpu.sh
 
 # System/editor
 .DS_Store
+
+# tex 
+paper.tex
