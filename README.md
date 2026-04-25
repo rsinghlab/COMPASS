@@ -25,6 +25,15 @@ Pretrained weights:
 | SAM, optional | `sam_vit_b_01ec64.pth` | Google Drive link to add before release |
 | Mask R-CNN, optional | `best_maskrcnn.pth` | Google Drive link to add before release |
 
+## Optional Preprocessing
+
+COMPASS normally accepts image folders directly. For tricky datasets whose raw image distribution differs from DeepComet-style images, detection can improve if images are first passed through the optional Fiji-style preprocessing step. This applies fixed 39-95 contrast scaling, a horizontal flip, and a baked green LUT by default.
+
+```bash
+uv run compass-preprocess --input /path/to/raw_images --output /path/to/edited_images
+uv run compass --input /path/to/edited_images
+```
+
 ## Run
 
 Run the default YOLO pipeline:

@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 compass = "compass.cli:main"
+compass-preprocess = "compass.preprocess:main"
 
 [build-system]
 requires = ["hatchling"]
