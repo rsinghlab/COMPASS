@@ -33,6 +33,8 @@ Run the default YOLO pipeline:
 uv run compass --input /path/to/image_folder
 ```
 
+YOLO hyperparameters, including the `--yolo-conf` confidence threshold default, can be changed in `compass/cli.py` if desired.
+
 Optional model choices:
 
 ```bash

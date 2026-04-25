@@ -30,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch-size", type=int, default=1, help="Inference batch size.")
     parser.add_argument("--num-workers", type=int, default=0, help="DataLoader worker processes.")
 
-    parser.add_argument("--yolo-conf", type=float, default=0.3, help="YOLO confidence threshold.")
+    parser.add_argument("--yolo-conf", type=float, default=0.2, help="YOLO confidence threshold.")
     parser.add_argument("--yolo-iou", type=float, default=0.5, help="YOLO NMS IoU threshold.")
     parser.add_argument("--yolo-max-det", type=int, default=None, help="Maximum YOLO detections per image.")
     parser.add_argument("--yolo-imgsz", default="960", help="YOLO inference size, for example 960 or 1024.")
