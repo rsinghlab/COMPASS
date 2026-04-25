@@ -68,8 +68,10 @@ def assign_damage_classes(
         good = False
         if treatment_key == "baseline":
             good = damage_class in (0, 1)
-        elif treatment_key in ("damage", "repair"):
+        elif treatment_key in ("repair"):
             good = damage_class in (1, 2, 3)
+        elif treatment_key in ("damage"):
+            good = damage_class in (1, 2, 3, 4)
 
         labels[i] = 1 if good else 0
         entry[PROFILE_DAMAGE_CLASS_IDX] = int(damage_class)

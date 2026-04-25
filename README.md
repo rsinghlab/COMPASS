@@ -44,6 +44,8 @@ uv run compass --input /path/to/image_folder
 
 YOLO hyperparameters, including the `--yolo-conf` confidence threshold default, can be changed in `compass/cli.py` if desired.
 
+By default, `--treatment infer` assigns the treatment from image path names. Include one of these words in each image's folder path or file name so good/bad selection uses the intended treatment: `baseline`, `base`, or `control` for baseline images; `damage` or `uv` for damage images; and `repair` for repair images. If no keyword is found, COMPASS treats the image as baseline. You can also force one treatment for the full run with `--treatment baseline`, `--treatment damage`, or `--treatment repair`.
+
 Optional model choices:
 
 ```bash
