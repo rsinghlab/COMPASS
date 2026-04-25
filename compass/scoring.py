@@ -52,22 +52,22 @@ def assign_damage_classes(
             continue
 
         pct_tail_dna = float(box_features[i][0])
-        if pct_tail_dna < 0.08:
+        if pct_tail_dna < 0.05:
             damage_class = 0
-        elif pct_tail_dna < 0.22:
+        elif pct_tail_dna < 0.12:
             damage_class = 1
-        elif pct_tail_dna < 0.35:
+        elif pct_tail_dna < 0.25:
             damage_class = 2
-        elif pct_tail_dna < 0.50:
+        elif pct_tail_dna < 0.40:
             damage_class = 3
-        elif pct_tail_dna < 0.90:
+        elif pct_tail_dna < 0.70:
             damage_class = 4
         else:
             damage_class = -1
 
         good = False
         if treatment_key == "baseline":
-            good = damage_class in (0, 1, 2)
+            good = damage_class in (0, 1)
         elif treatment_key in ("damage", "repair"):
             good = damage_class in (1, 2, 3)
 

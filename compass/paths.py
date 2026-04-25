@@ -17,13 +17,13 @@ def default_weights_dir() -> Path:
 
 
 def default_output_dir() -> Path:
-    return compass_home() / "outputs" / "latest"
+    return compass_home() / "outputs"
 
 
-def resolve_output_dir(path_value: Optional[str]) -> Path:
-    if path_value:
-        return Path(path_value).expanduser().resolve()
-    return default_output_dir()
+def resolve_output_dir(path_value: Optional[str], model_name: str) -> Path:
+    model_key = str(model_name).strip().lower()
+    base_dir = Path(path_value).expanduser().resolve() if path_value else default_output_dir()
+    return base_dir / model_key
 
 
 def default_weight_path(model_name: str) -> Path:

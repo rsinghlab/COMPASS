@@ -13,7 +13,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run COMPASS comet detection, measurement, scoring, and selection on an image folder.",
     )
     parser.add_argument("--input", required=True, help="Folder of comet assay images.")
-    parser.add_argument("--output", default=None, help="Output directory. Defaults to $COMPASS_HOME/outputs/latest.")
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Output base directory. Writes under a model subfolder; defaults to $COMPASS_HOME/outputs/<model>.",
+    )
     parser.add_argument("--model", choices=("yolo", "sam", "mrcnn"), default="yolo", help="Pretrained model to run.")
     parser.add_argument(
         "--treatment",

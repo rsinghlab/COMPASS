@@ -40,7 +40,13 @@ uv run compass --input /path/to/image_folder --model sam
 uv run compass --input /path/to/image_folder --model mrcnn
 ```
 
-By default, outputs are written to `$COMPASS_HOME/outputs/latest`.
+By default, outputs are written under a model-specific folder:
+
+- YOLO: `$COMPASS_HOME/outputs/yolo`
+- SAM: `$COMPASS_HOME/outputs/sam`
+- Mask R-CNN: `$COMPASS_HOME/outputs/mrcnn`
+
+If `--output /path/to/output_base` is provided, COMPASS writes to `/path/to/output_base/<model>`.
 
 ## Outputs
 
