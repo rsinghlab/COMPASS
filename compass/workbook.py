@@ -99,16 +99,19 @@ def write_measurements_xlsx(workbook_path: Path, per_image_rows: Sequence[Tuple[
     rows_by_image = list(per_image_rows) or [("no_images", [])]
     for image_name, rows in rows_by_image:
         ws = wb.create_sheet(safe_sheet_title(image_name, used_titles))
-        ws.append(DETECTION_COLUMNS)
+        ws.append(["Selected" if col == "good_bad" else col for col in DETECTION_COLUMNS])
         for cell in ws[1]:
             cell.font = header_font
         ws.freeze_panes = "A2"
 
         for row in rows:
-            ws.append([finite_or_none(row.get(col)) for col in DETECTION_COLUMNS])
+            ws.append([
+                row.get("good_bad") == "Good" if col == "good_bad" else finite_or_none(row.get(col))
+                for col in DETECTION_COLUMNS
+            ])
             excel_row = ws.max_row
             status_cell = ws.cell(row=excel_row, column=DETECTION_COLUMNS.index("good_bad") + 1)
-            status_cell.fill = good_fill if status_cell.value == "Good" else bad_fill
+            status_cell.fill = good_fill if status_cell.value else bad_fill
             for col_name in PERCENT_COLUMNS.intersection(DETECTION_COLUMNS):
                 col_idx = DETECTION_COLUMNS.index(col_name) + 1
                 ws.cell(row=excel_row, column=col_idx).number_format = "0.00%"
