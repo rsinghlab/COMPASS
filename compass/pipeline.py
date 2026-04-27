@@ -70,11 +70,12 @@ class PipelineConfig:
 
 def build_config(args) -> PipelineConfig:
     model = str(args.model).strip().lower()
-    output_dir = resolve_output_dir(args.output, model)
+    input_dir = Path(args.input).expanduser().resolve()
+    output_dir = resolve_output_dir(args.output, model, input_dir)
     arg_weights = getattr(args, "weights", None)
     weights = Path(arg_weights).expanduser().resolve() if arg_weights else default_weight_path(model)
     return PipelineConfig(
-        input_dir=Path(args.input).expanduser().resolve(),
+        input_dir=input_dir,
         output_dir=output_dir,
         model=model,
         weights=weights,

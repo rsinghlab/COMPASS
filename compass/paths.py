@@ -20,9 +20,14 @@ def default_output_dir() -> Path:
     return compass_home() / "outputs"
 
 
-def resolve_output_dir(path_value: Optional[str], model_name: str) -> Path:
+def resolve_output_dir(path_value: Optional[str], model_name: str, input_dir: Optional[Path | str] = None) -> Path:
     model_key = str(model_name).strip().lower()
-    base_dir = Path(path_value).expanduser().resolve() if path_value else default_output_dir()
+    if path_value:
+        base_dir = Path(path_value).expanduser().resolve()
+    else:
+        input_name = Path(input_dir).expanduser().name if input_dir else "default"
+        output_name = input_name.removesuffix("_edited") or "default"
+        base_dir = default_output_dir() / output_name
     return base_dir / model_key
 
 

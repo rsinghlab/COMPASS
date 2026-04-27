@@ -16,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output",
         default=None,
-        help="Output base directory. Writes under a model subfolder; defaults to $COMPASS_HOME/outputs/<model>.",
+        help="Output base directory. Writes under a model subfolder; defaults to $COMPASS_HOME/outputs/<input>/<model>.",
     )
     parser.add_argument("--model", choices=("yolo", "sam", "mrcnn"), default="yolo", help="Pretrained model to run.")
     parser.add_argument(
