@@ -27,7 +27,7 @@ Pretrained weights:
 
 ## Optional Preprocessing
 
-COMPASS normally accepts image folders directly. For tricky datasets whose raw image distribution differs from DeepComet-style images, detection can improve if images are first passed through the optional Fiji-style preprocessing step. This applies fixed 39-95 contrast scaling, a horizontal flip, and a baked green LUT by default.
+COMPASS normally accepts image folders directly. For tricky datasets whose raw image distribution differs from DeepComet-style images, detection can improve if images are first passed through the optional Fiji-style preprocessing step. This applies fixed 39-95 contrast scaling and a baked green LUT by default; pass `--flip-horizontal` to horizontally flip images.
 
 ```bash
 uv run compass-preprocess --input /path/to/raw_images --output /path/to/edited_images

@@ -40,7 +40,7 @@ def preprocess_image(
     *,
     min_val: float = DEFAULT_MIN_VAL,
     max_val: float = DEFAULT_MAX_VAL,
-    flip_horizontal: bool = True,
+    flip_horizontal: bool = False,
     green_lut: bool = True,
 ) -> Image.Image:
     gray = image.convert("L")
@@ -90,7 +90,7 @@ def preprocess_folder(
     layout: str = "mirror",
     min_val: float = DEFAULT_MIN_VAL,
     max_val: float = DEFAULT_MAX_VAL,
-    flip_horizontal: bool = True,
+    flip_horizontal: bool = False,
     green_lut: bool = True,
     output_suffix: str = DEFAULT_OUTPUT_SUFFIX,
 ) -> int:
@@ -134,8 +134,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-val", type=float, default=DEFAULT_MIN_VAL, help="Lower fixed contrast value.")
     parser.add_argument("--max-val", type=float, default=DEFAULT_MAX_VAL, help="Upper fixed contrast value.")
     parser.add_argument("--output-suffix", default=DEFAULT_OUTPUT_SUFFIX, help="Output image suffix.")
-    parser.add_argument("--flip-horizontal", action="store_true", default=True, help=argparse.SUPPRESS)
-    parser.add_argument("--no-flip-horizontal", action="store_false", dest="flip_horizontal", help="Disable horizontal flip.")
+    parser.add_argument("--flip-horizontal", action="store_true", default=False, help="Horizontally flip images.")
     parser.add_argument("--green-lut", action="store_true", default=True, help=argparse.SUPPRESS)
     parser.add_argument("--no-green-lut", action="store_false", dest="green_lut", help="Write grayscale output instead of green RGB.")
     return parser
