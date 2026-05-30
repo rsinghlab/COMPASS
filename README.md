@@ -17,13 +17,13 @@ export COMPASS_HOME=/path/to/compass_data
 mkdir -p "$COMPASS_HOME/weights"
 ```
 
-Pretrained weights:
+Pretrained weights: https://drive.google.com/drive/folders/11R1PAq6_QYcVv7e1Ka_tNiX41VYs6YKQ?usp=drive_link
 
 | Model | File name | Download |
 | --- | --- | --- |
-| YOLO, default | `best_yolo11x_seg.pt` | Google Drive link to add before release |
-| SAM, optional | `sam_vit_b_01ec64.pth` | Google Drive link to add before release |
-| Mask R-CNN, optional | `best_maskrcnn.pth` | Google Drive link to add before release |
+| YOLO, default | `best_yolo11x_seg.pt` | 
+| SAM, optional | `sam_vit_b_01ec64.pth` | 
+| Mask R-CNN, optional | `best_maskrcnn.pth` | 
 
 ## Optional Preprocessing
 

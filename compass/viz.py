@@ -12,6 +12,26 @@ from torchvision.utils import draw_bounding_boxes
 GOOD_BOX_COLOR = (0, 255, 0)
 BAD_BOX_COLOR = (255, 0, 0)
 BOX_LINE_WIDTH = 3
+LABEL_FONT_SIZE = 36
+LABEL_STROKE_WIDTH = 3
+LABEL_FONT_PATHS = (
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+)
+
+
+def _load_label_font() -> ImageFont.ImageFont:
+    for font_path in LABEL_FONT_PATHS:
+        if Path(font_path).is_file():
+            return ImageFont.truetype(font_path, size=LABEL_FONT_SIZE)
+    try:
+        return ImageFont.truetype("DejaVuSans-Bold.ttf", size=LABEL_FONT_SIZE)
+    except OSError:
+        try:
+            return ImageFont.load_default(size=LABEL_FONT_SIZE)
+        except TypeError:
+            return ImageFont.load_default()
 
 
 def save_prediction_overlay(
@@ -46,21 +66,28 @@ def save_prediction_overlay(
 
     if num_boxes > 0:
         draw = ImageDraw.Draw(overlay_pil)
-        font = ImageFont.load_default()
+        font = _load_label_font()
         width, height = overlay_pil.size
         label_text = [str(i) for i in range(num_boxes)]
         if box_profiles is not None and len(box_profiles) == num_boxes:
             label_text = [str(i) for i, _ in enumerate(box_profiles)]
         for text, box in zip(label_text, boxes_px.tolist()):
             x1, y1, x2, y2 = [int(v) for v in box]
-            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_bbox = draw.textbbox((0, 0), text, font=font, stroke_width=LABEL_STROKE_WIDTH)
             text_w = text_bbox[2] - text_bbox[0]
             text_h = text_bbox[3] - text_bbox[1]
             x = max(0, min(x1, width - text_w - 1))
             y = y1 - text_h - 2
             if y < 0:
                 y = min(max(0, y2 + 2), height - text_h - 1)
-            draw.text((x, y), text, fill=(255, 255, 255), font=font)
+            draw.text(
+                (x, y),
+                text,
+                fill=(255, 255, 255),
+                font=font,
+                stroke_width=LABEL_STROKE_WIDTH,
+                stroke_fill=(0, 0, 0),
+            )
 
     overlay_pil.save(out_path)
     return out_path

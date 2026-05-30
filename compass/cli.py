@@ -20,6 +20,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--model", choices=("yolo", "sam", "mrcnn"), default="yolo", help="Pretrained model to run.")
     parser.add_argument(
+        "--weights",
+        default=None,
+        help="Path to model weights. Defaults to $COMPASS_HOME/weights/<model weight file>.",
+    )
+    parser.add_argument(
         "--treatment",
         choices=("infer", "baseline", "damage", "repair"),
         default="infer",
