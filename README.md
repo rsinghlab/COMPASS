@@ -65,7 +65,7 @@ If `--output /path/to/output_base` is provided, COMPASS writes to `/path/to/outp
 
 Each run writes:
 
-- `measurements.xlsx`: one sheet per image and one row per detected comet.
+- `measurements.xlsx`: one combined sheet with one row per detected comet.
 - `detections.csv`: flat per-comet measurements for downstream analysis.
 - `run_summary.csv`: one row per image with detection and selection counts.
 - `overlays/`: final red/green box images, where green marks selected comets and red marks rejected detections.

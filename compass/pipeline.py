@@ -121,7 +121,6 @@ def run_pipeline(config: PipelineConfig) -> Path:
     model_runner = load_model(config.model, str(config.weights), config.device)
     yolo_imgsz = parse_imgsz(config.yolo_imgsz)
 
-    per_image_rows: List[Tuple[str, List[Dict[str, object]]]] = []
     all_detection_rows: List[Dict[str, object]] = []
     summary_rows: List[Dict[str, object]] = []
     overlays_dir = config.output_dir / "overlays"
@@ -147,7 +146,6 @@ def run_pipeline(config: PipelineConfig) -> Path:
             for img, target, pred in zip(imgs, targets, preds):
                 rows, boxes, labels, profiles = _process_prediction(img.detach().cpu(), target, pred, config)
                 image_name = str(target.get("file_name", f"image_{image_index:05d}"))
-                per_image_rows.append((image_name, rows))
                 all_detection_rows.extend(rows)
                 summary_rows.append(_summarize_target_rows(target, image_name, rows))
                 save_prediction_overlay(img.detach().cpu(), boxes, labels, target, overlays_dir, profiles)
@@ -159,7 +157,7 @@ def run_pipeline(config: PipelineConfig) -> Path:
                 )
                 image_index += 1
 
-    write_measurements_xlsx(config.output_dir / "measurements.xlsx", per_image_rows)
+    write_measurements_xlsx(config.output_dir / "measurements.xlsx", all_detection_rows)
     write_csv(config.output_dir / "detections.csv", all_detection_rows, DETECTION_COLUMNS)
     write_csv(config.output_dir / "run_summary.csv", summary_rows, SUMMARY_COLUMNS)
     _write_run_config(config)
