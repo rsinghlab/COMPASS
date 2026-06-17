@@ -61,7 +61,7 @@ uv run compass --input /path/to/image_folder --output /path/to/output_base
 
 Only `--input` and `--output` should be needed for the normal workflow. COMPASS defaults to the YOLO model, CPU execution, the default YOLO weights under `$COMPASS_HOME/weights`, and interactive review. The output path is a base directory; the model name is appended automatically, so `--output /path/to/output_base` writes to `/path/to/output_base/yolo` for the default model.
 
-Interactive review opens one image at a time after automatic scoring. Click model boxes to toggle manual deselection, drag with the live dotted preview to add missed comet boxes, right-click a manual box to remove it, press `u` to undo, `r` to reset the current image, `Enter` or `Space` to accept, and `q` to abort.
+Interactive review opens one image at a time after automatic scoring. Click a green model box to manually reject it as dotted red, click a red model box to manually select it as dotted green, and click again to restore the automatic decision. Drag with the live dotted preview to add missed comet boxes, right-click a manual box to remove it, press `u` to undo, `r` to reset the current image, `Enter` or `Space` to accept, and `q` to abort.
 
 To run without the review window, turn interactive review off explicitly:
 
@@ -97,7 +97,7 @@ Each run writes:
 
 - `measurements.xlsx`: one combined sheet with one row per detected comet.
 - `detections.csv`: flat per-comet measurements for downstream analysis.
-- `run_summary.csv`: one row per image with detection, selection, and manual-review counts.
-- `overlays/`: final box images, where green marks auto-selected comets, red marks auto-rejected detections, orange marks manually deselected detections, and blue marks manually added detections.
+- `run_summary.csv`: one row per image with detection, selection, manual-added, manual-rejected, and manual-selected counts.
+- `overlays/`: final box images, where solid green marks auto-selected comets, solid red marks auto-rejected detections, dotted red marks manually rejected detections, dotted green marks manually selected detections, and blue marks manually added detections.
 - `run_config.json`: model, weights, thresholds, input, output, and timestamp.
 - `run.log`: basic run progress and warnings.

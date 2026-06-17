@@ -62,6 +62,7 @@ SUMMARY_COLUMNS = [
     "rejected_bad",
     "manual_added",
     "manual_deselected",
+    "manual_selected",
     "mean_tail_dna_percent",
     "mean_tail_moment",
     "mean_olive_moment",
@@ -141,6 +142,7 @@ def summarize_image_rows(image_name: str, rows: List[Dict[str, object]]) -> Dict
     good = [row for row in rows if row.get("good_bad") == "Good"]
     manual_added = [row for row in rows if row.get("review_action") == "manual_added" or row.get("detection_source") == "manual"]
     manual_deselected = [row for row in rows if row.get("review_action") == "manual_deselected"]
+    manual_selected = [row for row in rows if row.get("review_action") == "manual_selected"]
 
     def mean_of(col: str) -> object:
         vals = [float(row[col]) for row in good if row.get(col) is not None and math.isfinite(float(row[col]))]
@@ -156,6 +158,7 @@ def summarize_image_rows(image_name: str, rows: List[Dict[str, object]]) -> Dict
         "rejected_bad": int(len(rows) - len(good)),
         "manual_added": int(len(manual_added)),
         "manual_deselected": int(len(manual_deselected)),
+        "manual_selected": int(len(manual_selected)),
         "mean_tail_dna_percent": mean_of("tail_dna_percent"),
         "mean_tail_moment": mean_of("tail_moment"),
         "mean_olive_moment": mean_of("olive_moment"),

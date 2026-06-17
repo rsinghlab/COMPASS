@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Sequence, Set, Tuple
 
 import cv2
@@ -30,6 +30,7 @@ class ReviewAborted(RuntimeError):
 class ReviewEdits:
     deselected_indices: Set[int]
     manual_boxes: torch.Tensor
+    selected_indices: Set[int] = field(default_factory=set)
 
 
 def assert_interactive_review_available() -> None:
@@ -68,7 +69,7 @@ def review_detections(
 
     image_name = str(target.get("relative_path") or target.get("file_name") or "image")
     print(
-        f"Reviewing {image_name}: click model boxes to toggle deselection, drag to add a box, "
+        f"Reviewing {image_name}: click model boxes to flip selected/rejected state, drag to add a box, "
         "right-click a manual box to remove it, u undo, r reset, Enter/Space accept, q abort.",
         flush=True,
     )
@@ -93,7 +94,11 @@ def review_detections(
                     if state.manual_boxes
                     else torch.zeros((0, 4), dtype=torch.float32)
                 )
-                return ReviewEdits(deselected_indices=set(state.deselected_indices), manual_boxes=manual)
+                return ReviewEdits(
+                    deselected_indices=set(state.deselected_indices),
+                    manual_boxes=manual,
+                    selected_indices=set(state.selected_indices),
+                )
             if key in (ord("q"), ord("Q"), 27):
                 raise ReviewAborted(f"Interactive review aborted for {image_name}.")
             if key in (ord("u"), ord("U")):
@@ -112,25 +117,28 @@ class _ReviewState:
         self.height = int(height)
         self.width = int(width)
         self.deselected_indices: Set[int] = set()
+        self.selected_indices: Set[int] = set()
         self.manual_boxes: List[Tuple[float, float, float, float]] = []
-        self.history: List[Tuple[Set[int], List[Tuple[float, float, float, float]]]] = []
+        self.history: List[Tuple[Set[int], Set[int], List[Tuple[float, float, float, float]]]] = []
         self.drag_start: Optional[Tuple[float, float]] = None
         self.drag_current: Optional[Tuple[float, float]] = None
         self.display_scale = 1.0
 
     def snapshot(self) -> None:
-        self.history.append((set(self.deselected_indices), list(self.manual_boxes)))
+        self.history.append((set(self.deselected_indices), set(self.selected_indices), list(self.manual_boxes)))
 
     def undo(self) -> None:
         if not self.history:
             return
-        deselected, manual = self.history.pop()
+        deselected, selected, manual = self.history.pop()
         self.deselected_indices = deselected
+        self.selected_indices = selected
         self.manual_boxes = manual
 
     def reset(self) -> None:
         self.snapshot()
         self.deselected_indices.clear()
+        self.selected_indices.clear()
         self.manual_boxes.clear()
 
     def on_mouse(self, event: int, x: int, y: int, flags: int, param: object) -> None:
@@ -176,10 +184,18 @@ class _ReviewState:
         if idx is None:
             return
         self.snapshot()
-        if idx in self.deselected_indices:
-            self.deselected_indices.remove(idx)
+        if int(self.labels[idx].item()) == 1:
+            self.selected_indices.discard(idx)
+            if idx in self.deselected_indices:
+                self.deselected_indices.remove(idx)
+            else:
+                self.deselected_indices.add(idx)
         else:
-            self.deselected_indices.add(idx)
+            self.deselected_indices.discard(idx)
+            if idx in self.selected_indices:
+                self.selected_indices.remove(idx)
+            else:
+                self.selected_indices.add(idx)
 
     def _remove_manual_box(self, x: float, y: float) -> None:
         for idx in range(len(self.manual_boxes) - 1, -1, -1):
@@ -197,17 +213,33 @@ class _ReviewState:
         )
         boxes = torch.cat([self.boxes, manual], dim=0) if manual.numel() > 0 else self.boxes
         manual_labels = torch.ones((int(manual.shape[0]),), dtype=torch.int64)
-        labels = torch.cat([self.labels, manual_labels], dim=0) if manual_labels.numel() > 0 else self.labels
+        model_labels = self.labels.clone()
+        for idx in self.deselected_indices:
+            if 0 <= idx < int(model_labels.numel()):
+                model_labels[idx] = 0
+        for idx in self.selected_indices:
+            if 0 <= idx < int(model_labels.numel()):
+                model_labels[idx] = 1
+        labels = torch.cat([model_labels, manual_labels], dim=0) if manual_labels.numel() > 0 else model_labels
         return boxes, labels
 
     def _display_rows(self) -> List[dict]:
         rows: List[dict] = []
         for idx, label in enumerate(self.labels.tolist()):
+            if idx in self.selected_indices:
+                review_action = "manual_selected"
+                good_bad = "Good"
+            elif idx in self.deselected_indices:
+                review_action = "manual_deselected"
+                good_bad = "Deselected"
+            else:
+                review_action = "none"
+                good_bad = "Good" if int(label) == 1 else "Bad"
             rows.append(
                 {
                     "detection_source": "model",
-                    "review_action": "manual_deselected" if idx in self.deselected_indices else "none",
-                    "good_bad": "Deselected" if idx in self.deselected_indices else ("Good" if int(label) == 1 else "Bad"),
+                    "review_action": review_action,
+                    "good_bad": good_bad,
                 }
             )
         for _ in self.manual_boxes:

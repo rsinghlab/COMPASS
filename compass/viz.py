@@ -1,21 +1,24 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
 import torch
 from PIL import Image, ImageDraw, ImageFont
 from torchvision.transforms import functional as F
-from torchvision.utils import draw_bounding_boxes
 
 
 GOOD_BOX_COLOR = (0, 255, 0)
 BAD_BOX_COLOR = (255, 0, 0)
-MANUAL_DESELECTED_BOX_COLOR = (255, 165, 0)
+MANUAL_DESELECTED_BOX_COLOR = BAD_BOX_COLOR
+MANUAL_SELECTED_BOX_COLOR = GOOD_BOX_COLOR
 MANUAL_ADDED_BOX_COLOR = (0, 128, 255)
 BOX_LINE_WIDTH = 3
 LABEL_FONT_SIZE = 36
 LABEL_STROKE_WIDTH = 3
+DOTTED_DASH_LENGTH = 8
+DOTTED_GAP_LENGTH = 6
 LABEL_FONT_PATHS = (
     "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -42,6 +45,8 @@ def box_color_for_status(label: int, row: Optional[Dict[str, object]] = None) ->
         detection_source = str(row.get("detection_source", "model")).strip().lower()
         if review_action == "manual_deselected":
             return MANUAL_DESELECTED_BOX_COLOR
+        if review_action == "manual_selected":
+            return MANUAL_SELECTED_BOX_COLOR
         if review_action == "manual_added" or detection_source == "manual":
             return MANUAL_ADDED_BOX_COLOR
         good_bad = row.get("good_bad")
@@ -50,6 +55,15 @@ def box_color_for_status(label: int, row: Optional[Dict[str, object]] = None) ->
         if good_bad in {"Bad", "Deselected"}:
             return BAD_BOX_COLOR
     return GOOD_BOX_COLOR if int(label) == 1 else BAD_BOX_COLOR
+
+
+def box_style_for_status(row: Optional[Dict[str, object]] = None) -> str:
+    if row is None:
+        return "solid"
+    review_action = str(row.get("review_action", "none")).strip().lower()
+    if review_action in {"manual_deselected", "manual_selected"}:
+        return "dotted"
+    return "solid"
 
 
 def render_prediction_overlay(
@@ -67,19 +81,20 @@ def render_prediction_overlay(
         labels_cpu = torch.cat([labels_cpu, torch.zeros((num_boxes - labels_cpu.numel(),), dtype=torch.int64)])
     labels_cpu = labels_cpu[:num_boxes]
 
-    overlay = base_img
+    overlay_pil = F.to_pil_image(base_img)
     boxes_px = boxes_cpu.round().to(torch.int64)
     if num_boxes > 0:
-        colors = [
-            box_color_for_status(
+        draw = ImageDraw.Draw(overlay_pil)
+        for idx, (label, box) in enumerate(zip(labels_cpu.tolist(), boxes_px.tolist())):
+            row = rows[idx] if rows is not None and idx < len(rows) else None
+            color = box_color_for_status(
                 int(label),
-                rows[idx] if rows is not None and idx < len(rows) else None,
+                row,
             )
-            for idx, label in enumerate(labels_cpu.tolist())
-        ]
-        overlay = draw_bounding_boxes(overlay, boxes_px, colors=colors, width=BOX_LINE_WIDTH)
-
-    overlay_pil = F.to_pil_image(overlay)
+            if box_style_for_status(row) == "dotted":
+                _draw_dotted_rectangle(draw, box, color, BOX_LINE_WIDTH)
+            else:
+                _draw_rectangle(draw, box, color, BOX_LINE_WIDTH)
 
     if num_boxes > 0:
         draw = ImageDraw.Draw(overlay_pil)
@@ -106,6 +121,63 @@ def render_prediction_overlay(
                 stroke_fill=(0, 0, 0),
             )
     return overlay_pil
+
+
+def _draw_rectangle(
+    draw: ImageDraw.ImageDraw,
+    box: Sequence[int],
+    color: tuple[int, int, int],
+    width: int,
+) -> None:
+    x1, y1, x2, y2 = [int(v) for v in box]
+    for offset in range(max(1, int(width))):
+        draw.rectangle((x1 - offset, y1 - offset, x2 + offset, y2 + offset), outline=color)
+
+
+def _draw_dotted_rectangle(
+    draw: ImageDraw.ImageDraw,
+    box: Sequence[int],
+    color: tuple[int, int, int],
+    width: int,
+) -> None:
+    x1, y1, x2, y2 = [int(v) for v in box]
+    left, right = sorted((x1, x2))
+    top, bottom = sorted((y1, y2))
+    _draw_dotted_line(draw, (left, top), (right, top), color, width)
+    _draw_dotted_line(draw, (right, top), (right, bottom), color, width)
+    _draw_dotted_line(draw, (right, bottom), (left, bottom), color, width)
+    _draw_dotted_line(draw, (left, bottom), (left, top), color, width)
+
+
+def _draw_dotted_line(
+    draw: ImageDraw.ImageDraw,
+    start: tuple[int, int],
+    end: tuple[int, int],
+    color: tuple[int, int, int],
+    width: int,
+    dash_length: int = DOTTED_DASH_LENGTH,
+    gap_length: int = DOTTED_GAP_LENGTH,
+) -> None:
+    x1, y1 = start
+    x2, y2 = end
+    dx = float(x2 - x1)
+    dy = float(y2 - y1)
+    length = float(math.hypot(dx, dy))
+    if length <= 0.0:
+        return
+
+    dash = max(1, int(dash_length))
+    gap = max(0, int(gap_length))
+    step = max(1, dash + gap)
+    distance = 0.0
+    while distance < length:
+        segment_end = min(distance + dash, length)
+        start_ratio = distance / length
+        end_ratio = segment_end / length
+        segment_start = (int(round(x1 + dx * start_ratio)), int(round(y1 + dy * start_ratio)))
+        segment_stop = (int(round(x1 + dx * end_ratio)), int(round(y1 + dy * end_ratio)))
+        draw.line((segment_start, segment_stop), fill=color, width=max(1, int(width)))
+        distance += step
 
 
 def save_prediction_overlay(

@@ -167,12 +167,13 @@ def run_pipeline(config: PipelineConfig) -> Path:
                 summary_rows.append(_summarize_target_rows(target, image_name, rows))
                 save_prediction_overlay(img.detach().cpu(), boxes, labels, target, overlays_dir, profiles, rows=rows)
                 logger.info(
-                    "%s: detections=%d selected_good=%d manual_added=%d manual_deselected=%d",
+                    "%s: detections=%d selected_good=%d manual_added=%d manual_deselected=%d manual_selected=%d",
                     target.get("relative_path", image_name),
                     len(rows),
                     sum(1 for row in rows if row.get("good_bad") == "Good"),
                     sum(1 for row in rows if row.get("review_action") == "manual_added"),
                     sum(1 for row in rows if row.get("review_action") == "manual_deselected"),
+                    sum(1 for row in rows if row.get("review_action") == "manual_selected"),
                 )
                 image_index += 1
 
@@ -276,6 +277,14 @@ def _apply_review_edits(
         for idx in getattr(edits, "deselected_indices", set())
         if 0 <= int(idx) < model_count
     }
+    selected = {
+        int(idx)
+        for idx in getattr(edits, "selected_indices", set())
+        if 0 <= int(idx) < model_count
+    }
+    conflicts = selected.intersection(deselected)
+    selected.difference_update(conflicts)
+    deselected.difference_update(conflicts)
 
     manual_boxes = getattr(edits, "manual_boxes", torch.zeros((0, 4), dtype=torch.float32))
     if manual_boxes is None:
@@ -299,6 +308,9 @@ def _apply_review_edits(
     for idx in sorted(deselected):
         labels[idx] = 0
         _set_profile_label(box_profiles[idx], 0)
+    for idx in sorted(selected):
+        labels[idx] = 1
+        _set_profile_label(box_profiles[idx], 1)
 
     reviewed_rows = _measurement_rows(target, boxes, labels, scores, box_profiles)
     for row in reviewed_rows:
@@ -310,6 +322,10 @@ def _apply_review_edits(
                 row["good_bad"] = "Deselected"
                 row["label"] = 0
                 row["review_action"] = "manual_deselected"
+            elif det_idx in selected:
+                row["good_bad"] = "Good"
+                row["label"] = 1
+                row["review_action"] = "manual_selected"
             else:
                 row["review_action"] = "none"
         else:
