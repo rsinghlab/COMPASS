@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-import torch
-
 from .pipeline import build_config, run_pipeline
 
 
@@ -30,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="infer",
         help="Treatment used for good/bad selection. 'infer' reads path names when possible.",
     )
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="cpu, cuda, or cuda:0.")
+    parser.add_argument("--device", default="cpu", help="cpu, cuda, or cuda:0.")
     parser.add_argument("--max-images", type=int, default=None, help="Process only the first N images.")
     parser.add_argument("--batch-size", type=int, default=1, help="Inference batch size.")
     parser.add_argument("--num-workers", type=int, default=0, help="DataLoader worker processes.")
@@ -46,6 +44,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--mrcnn-conf", type=float, default=0.05, help="Mask R-CNN confidence threshold.")
     parser.add_argument("--mask-thresh", type=float, default=0.5, help="Mask probability threshold for measurements.")
+    parser.add_argument(
+        "--interactive-review",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Open an interactive OpenCV review window for each scored image before final outputs are saved.",
+    )
     return parser
 
 

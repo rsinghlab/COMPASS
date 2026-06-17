@@ -36,6 +36,9 @@ DETECTION_COLUMNS = [
     "treatment",
     "detection_index",
     "good_bad",
+    "detection_source",
+    "review_action",
+    "auto_selected",
     "score",
     "damage_class",
     "label",
@@ -57,6 +60,8 @@ SUMMARY_COLUMNS = [
     "total_detections",
     "selected_good",
     "rejected_bad",
+    "manual_added",
+    "manual_deselected",
     "mean_tail_dna_percent",
     "mean_tail_moment",
     "mean_olive_moment",
@@ -79,6 +84,8 @@ def write_measurements_xlsx(workbook_path: Path, rows: Sequence[Dict[str, object
 
     good_fill = PatternFill(fill_type="solid", fgColor="C6EFCE")
     bad_fill = PatternFill(fill_type="solid", fgColor="FFC7CE")
+    deselected_fill = PatternFill(fill_type="solid", fgColor="F4B183")
+    manual_added_fill = PatternFill(fill_type="solid", fgColor="9DC3E6")
     header_font = Font(bold=True)
 
     ws.append(["Selected" if col == "good_bad" else col for col in DETECTION_COLUMNS])
@@ -88,12 +95,17 @@ def write_measurements_xlsx(workbook_path: Path, rows: Sequence[Dict[str, object
 
     for row in rows:
         ws.append([
-            row.get("good_bad") == "Good" if col == "good_bad" else finite_or_none(row.get(col))
+            selected_cell_value(row) if col == "good_bad" else finite_or_none(row.get(col))
             for col in DETECTION_COLUMNS
         ])
         excel_row = ws.max_row
         status_cell = ws.cell(row=excel_row, column=DETECTION_COLUMNS.index("good_bad") + 1)
-        status_cell.fill = good_fill if status_cell.value else bad_fill
+        if row.get("review_action") == "manual_deselected":
+            status_cell.fill = deselected_fill
+        elif row.get("review_action") == "manual_added" or row.get("detection_source") == "manual":
+            status_cell.fill = manual_added_fill
+        else:
+            status_cell.fill = good_fill if bool(status_cell.value) else bad_fill
         for col_name in PERCENT_COLUMNS.intersection(DETECTION_COLUMNS):
             col_idx = DETECTION_COLUMNS.index(col_name) + 1
             ws.cell(row=excel_row, column=col_idx).number_format = "0.00%"
@@ -118,9 +130,17 @@ def write_csv(path: Path, rows: Sequence[Dict[str, object]], columns: Sequence[s
             writer.writerow({col: finite_or_none(row.get(col)) for col in columns})
 
 
+def selected_cell_value(row: Dict[str, object]) -> object:
+    if row.get("review_action") == "manual_deselected":
+        return "Deselected"
+    return row.get("good_bad") == "Good"
+
+
 def summarize_image_rows(image_name: str, rows: List[Dict[str, object]]) -> Dict[str, object]:
     first = rows[0] if rows else {}
     good = [row for row in rows if row.get("good_bad") == "Good"]
+    manual_added = [row for row in rows if row.get("review_action") == "manual_added" or row.get("detection_source") == "manual"]
+    manual_deselected = [row for row in rows if row.get("review_action") == "manual_deselected"]
 
     def mean_of(col: str) -> object:
         vals = [float(row[col]) for row in good if row.get(col) is not None and math.isfinite(float(row[col]))]
@@ -134,6 +154,8 @@ def summarize_image_rows(image_name: str, rows: List[Dict[str, object]]) -> Dict
         "total_detections": int(len(rows)),
         "selected_good": int(len(good)),
         "rejected_bad": int(len(rows) - len(good)),
+        "manual_added": int(len(manual_added)),
+        "manual_deselected": int(len(manual_deselected)),
         "mean_tail_dna_percent": mean_of("tail_dna_percent"),
         "mean_tail_moment": mean_of("tail_moment"),
         "mean_olive_moment": mean_of("olive_moment"),

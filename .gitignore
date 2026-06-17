@@ -22,6 +22,9 @@ pixels/
 *.pt
 *.pth
 
+# Local-only test artifacts
+tests/
+
 # Local-only cluster helper
 scripts/run_gpu.sh
 

@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 
 import torch
-from PIL import ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 from torchvision.transforms import functional as F
 from torchvision.utils import draw_bounding_boxes
 
 
 GOOD_BOX_COLOR = (0, 255, 0)
 BAD_BOX_COLOR = (255, 0, 0)
+MANUAL_DESELECTED_BOX_COLOR = (255, 165, 0)
+MANUAL_ADDED_BOX_COLOR = (0, 128, 255)
 BOX_LINE_WIDTH = 3
 LABEL_FONT_SIZE = 36
 LABEL_STROKE_WIDTH = 3
@@ -34,18 +36,29 @@ def _load_label_font() -> ImageFont.ImageFont:
             return ImageFont.load_default()
 
 
-def save_prediction_overlay(
+def box_color_for_status(label: int, row: Optional[Dict[str, object]] = None) -> tuple[int, int, int]:
+    if row is not None:
+        review_action = str(row.get("review_action", "none")).strip().lower()
+        detection_source = str(row.get("detection_source", "model")).strip().lower()
+        if review_action == "manual_deselected":
+            return MANUAL_DESELECTED_BOX_COLOR
+        if review_action == "manual_added" or detection_source == "manual":
+            return MANUAL_ADDED_BOX_COLOR
+        good_bad = row.get("good_bad")
+        if good_bad == "Good":
+            return GOOD_BOX_COLOR
+        if good_bad in {"Bad", "Deselected"}:
+            return BAD_BOX_COLOR
+    return GOOD_BOX_COLOR if int(label) == 1 else BAD_BOX_COLOR
+
+
+def render_prediction_overlay(
     img_tensor: torch.Tensor,
     boxes: torch.Tensor,
     labels: torch.Tensor,
-    target: Dict[str, object],
-    out_dir: Path,
     box_profiles: Optional[List[Dict]] = None,
-) -> Path:
-    relative_path = str(target.get("relative_path", "")).strip()
-    if relative_path:
-        out_dir = out_dir / Path(relative_path).parent
-    out_dir.mkdir(parents=True, exist_ok=True)
+    rows: Optional[Sequence[Dict[str, object]]] = None,
+) -> Image.Image:
     base_img = (img_tensor.detach().cpu().clamp(0, 1) * 255.0).to(torch.uint8)
     boxes_cpu = boxes.detach().cpu().to(torch.float32) if boxes is not None else torch.zeros((0, 4))
     labels_cpu = labels.detach().cpu().to(torch.int64) if labels is not None else torch.zeros((0,), dtype=torch.int64)
@@ -57,11 +70,15 @@ def save_prediction_overlay(
     overlay = base_img
     boxes_px = boxes_cpu.round().to(torch.int64)
     if num_boxes > 0:
-        colors = [GOOD_BOX_COLOR if int(label) == 1 else BAD_BOX_COLOR for label in labels_cpu.tolist()]
+        colors = [
+            box_color_for_status(
+                int(label),
+                rows[idx] if rows is not None and idx < len(rows) else None,
+            )
+            for idx, label in enumerate(labels_cpu.tolist())
+        ]
         overlay = draw_bounding_boxes(overlay, boxes_px, colors=colors, width=BOX_LINE_WIDTH)
 
-    file_name = str(target.get("file_name", "image"))
-    out_path = out_dir / f"{Path(file_name).stem}_overlay.png"
     overlay_pil = F.to_pil_image(overlay)
 
     if num_boxes > 0:
@@ -88,6 +105,25 @@ def save_prediction_overlay(
                 stroke_width=LABEL_STROKE_WIDTH,
                 stroke_fill=(0, 0, 0),
             )
+    return overlay_pil
 
+
+def save_prediction_overlay(
+    img_tensor: torch.Tensor,
+    boxes: torch.Tensor,
+    labels: torch.Tensor,
+    target: Dict[str, object],
+    out_dir: Path,
+    box_profiles: Optional[List[Dict]] = None,
+    rows: Optional[Sequence[Dict[str, object]]] = None,
+) -> Path:
+    relative_path = str(target.get("relative_path", "")).strip()
+    if relative_path:
+        out_dir = out_dir / Path(relative_path).parent
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    file_name = str(target.get("file_name", "image"))
+    out_path = out_dir / f"{Path(file_name).stem}_overlay.png"
+    overlay_pil = render_prediction_overlay(img_tensor, boxes, labels, box_profiles=box_profiles, rows=rows)
     overlay_pil.save(out_path)
     return out_path
